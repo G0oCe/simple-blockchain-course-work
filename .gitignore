@@ -24,6 +24,7 @@ cmake_install.cmake
 *.so
 *.a
 *.dll
+keys/
 
 
 # === Logs / Debugging ===
@@ -33,3 +34,6 @@ cmake_install.cmake
 # === Misc ===
 *.swp
 *.tmp
+
+# === Edu ===
+src/edu
