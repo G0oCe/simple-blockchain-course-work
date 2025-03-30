@@ -1,6 +1,32 @@
-.vscode/
-main
-*.out
-*.o
+# === OS Specific ===
 .DS_Store
 **/.DS_Store
+
+# === CLion / JetBrains ===
+.idea/
+cmake-build-*/
+*.iml
+
+# === Build Artifacts ===
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# === Binary & Object Files ===
+*.out
+*.o
+*.obj
+*.exe
+*.so
+*.a
+*.dll
+
+# === Logs / Debugging ===
+*.log
+*.core
+
+# === Misc ===
+*.swp
+*.tmp
