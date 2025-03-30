@@ -7,12 +7,14 @@
 cmake-build-*/
 *.iml
 
+# === RSA keys ===
+*.pem
+
 # === Build Artifacts ===
 build/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 
 # === Binary & Object Files ===
 *.out
@@ -22,6 +24,7 @@ Makefile
 *.so
 *.a
 *.dll
+
 
 # === Logs / Debugging ===
 *.log
