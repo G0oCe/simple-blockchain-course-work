@@ -24,7 +24,6 @@ cmake_install.cmake
 *.so
 *.a
 *.dll
-keys/
 
 
 # === Logs / Debugging ===
