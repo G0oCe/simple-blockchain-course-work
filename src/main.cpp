@@ -5,13 +5,15 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <fstream>
 
 #include "hash.hpp"
 #include "Block.hpp"
 #include "common.hpp"
 #include "BlockChain.hpp"
 #include "crypto_signer.hpp"
-// убраны: requests.hpp, json.hh, client_http.hpp, server_http.hpp
+#include "json.hh"
+// убраны: requests.hpp, client_http.hpp, server_http.hpp
 
 using namespace std;
 
@@ -20,6 +22,13 @@ using namespace std;
  */
 int main() {
     printf("Добро пожаловать в локальную версию блокчейна! Для выхода — Ctrl+C\n");
+
+    std::ifstream config_file("../config.json");
+    nlohmann::json config;
+    config_file >> config;
+
+    unsigned int key_size = config["key_size"];
+    std::string key_path = config["key_path"];
 
 //    BlockChain bc;
 //    bc = BlockChain(0); // создаём genesis-блок
@@ -64,7 +73,7 @@ int main() {
 //
 //    printf("\nРабота завершена.\n");
 
-    crypto_signer signer("../../keys");
+    crypto_signer signer(key_path, key_size);
 
     std::string message = "hello blockchain";
     std::string sig = signer.sign(message);
