@@ -27,6 +27,7 @@ int main() {
 
     unsigned int key_size = config["key_size"];
     std::string key_path = config["key_path"];
+    bool verify_blocks = config.value("verify_blocks", false); // если нет — по умолчанию false
 
     crypto_signer signer(key_path, key_size);
 
@@ -50,11 +51,12 @@ int main() {
                 Block block = bc.getBlock(temp);
                 block.toString();
 
-
-                if (signer.verify(block.getHash(), block.getSignature()))
-                    std::cout << "✅ Подпись блока корректна\n";
-                else
-                    std::cout << "❌ Подпись блока НЕ прошла\n";
+                if (verify_blocks) {
+                    if (signer.verify(block.getHash(), block.getSignature()))
+                        std::cout << "✅ Подпись блока корректна\n";
+                    else
+                        std::cout << "❌ Подпись блока НЕ прошла\n";
+                }
 
             } catch (const exception& e) {
                 cout << e.what() << endl;

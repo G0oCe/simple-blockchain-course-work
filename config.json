@@ -1,4 +1,5 @@
 {
   "key_size": 512,
-  "key_path": "../../keys/"
+  "key_path": "../keys/",
+  "verify_blocks": false
 }
