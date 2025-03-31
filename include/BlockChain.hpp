@@ -63,6 +63,11 @@ int BlockChain::addBlock(int index, std::string prevHash, std::string nonce, std
 
         blockchain.push_back(std::make_unique<Block>(index, prevHash, hash, nonce, merkle, signature));
 
+        // Автоматическое сохранение в файл
+        std::ofstream out("../blockchain.json");
+        out << this->toJSON();
+        out.close();
+        
         std::cout <<"Block hashes match --- Adding Block "<< hash << std::endl;
         return 1;
     }

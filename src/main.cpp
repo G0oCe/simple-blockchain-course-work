@@ -33,8 +33,22 @@ int main() {
 
     printf("Добро пожаловать в локальную версию блокчейна! Для выхода — Ctrl+C\n");
 
+    std::unique_ptr<BlockChain> bc;
 
-    BlockChain bc(signer, 0);  // создаём genesis-блок
+
+    std::ifstream blockchain_input("../blockchain.json");
+    nlohmann::json chain_json;
+
+    if (blockchain_input.is_open()) {
+        blockchain_input >> chain_json;
+        bc = std::make_unique<BlockChain>(signer, 1);  // dummy genesis
+        bc -> replaceChain(chain_json);
+        std::cout << "Загружен существующий блокчейн из файла.\n";
+    } else {
+        bc = std::make_unique<BlockChain>(signer, 0); // создаём genesis-блок
+        std::cout << "Создан новый блокчейн с genesis-блоком.\n";
+    }
+
 
     // CLI — ввод и просмотр блоков
     for (int i = 0; i < 20; i++) {
@@ -48,7 +62,7 @@ int main() {
             printf("Введите индекс блока для просмотра: ");
             scanf("%d", &temp);
             try {
-                Block block = bc.getBlock(temp);
+                Block block = bc -> getBlock(temp);
                 block.toString();
 
                 if (verify_blocks) {
@@ -75,8 +89,8 @@ int main() {
             scanf("%d", &in);
 
             try {
-                auto pair = findHash(bc.getNumOfBlocks(), bc.getLatestBlockHash(), v);
-                bc.addBlock(bc.getNumOfBlocks(), bc.getLatestBlockHash(), pair.first, pair.second, v);
+                auto pair = findHash(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), v);
+                bc -> addBlock(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), pair.first, pair.second, v);
             } catch (const exception& e) {
                 cout << e.what() << "\n" << endl;
             }
