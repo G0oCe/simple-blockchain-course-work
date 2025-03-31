@@ -13,11 +13,12 @@ using json = nlohmann::json;
 
 class Block {
     public:
-        Block(int index, string prevHas, string hash, string nonce, vector<string> data);
+        Block(int index, string prevHas, string hash, string nonce, vector<string> data, std::string signature);
         string getPreviousHash(void);
         string getHash(void);
         int getIndex(void);
         vector<string> getData(void);
+        std::string  getSignature(void);
 
         void toString(void);
         json toJSON(void);
@@ -27,17 +28,19 @@ class Block {
         string blockHash;
         string nonce;
         vector<string> data;
+        std::string signature;
         // string getMerkleRoot(const vector<string> &merkle);
 };
 // Constructor 
-Block::Block(int index, string prevHash, string hash, string nonce, vector<string> data ) {
+Block::Block(int index, string prevHash, string hash, string nonce, vector<string> data, std::string signature) {
     printf("\nInitializing Block: %d ---- Hash: %s \n", index,hash.c_str());
     this -> previousHash = prevHash;
     this -> data = data;
     this -> index = index;
     this -> nonce = nonce;
     this -> blockHash = hash;
-    
+    this -> signature = signature;
+
 }
 
 int Block::getIndex(void) {
@@ -55,6 +58,11 @@ string Block::getHash(void) {
 vector<string> Block::getData(void){
     return this -> data;
 }
+
+string Block::getSignature(void) {
+    return this -> signature;
+}
+
 
 // Prints Block data 
 void Block::toString(void) {
@@ -74,6 +82,7 @@ json Block::toJSON(void) {
     j["previousHash"] = this->previousHash;
     j["nonce"] = this->nonce;
     j["data"] = this->data;
+    j["signature"] = this->signature;
     return j;
 }
 
