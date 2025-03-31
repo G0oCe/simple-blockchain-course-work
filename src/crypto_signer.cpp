@@ -20,13 +20,32 @@ void crypto_signer::loadOrGenerateKeys() {
     std::string privPath = keyDirectory + "private.pem";
     std::string pubPath = keyDirectory + "public.pem";
 
-    if (std::filesystem::exists(privPath) && std::filesystem::exists(pubPath)) {
-        FileSource privateFile(privPath.c_str(), true);
-        privateKey.BERDecode(privateFile);
+    bool keysExist = std::filesystem::exists(privPath) && std::filesystem::exists(pubPath);
+    bool needToRegenerate = false;
 
-        FileSource publicFile(pubPath.c_str(), true);
-        publicKey.BERDecode(publicFile);
+    if (keysExist) {
+        try {
+            FileSource privateFile(privPath.c_str(), true);
+            privateKey.BERDecode(privateFile);
+
+            FileSource publicFile(pubPath.c_str(), true);
+            publicKey.BERDecode(publicFile);
+
+            // Проверяем длину ключа (в битах)
+            if (privateKey.GetModulus().BitCount() != rsaKeySize) {
+                std::cout << "Обнаружено несоответствие длины ключа. Создаем новые ключи...\n";
+                needToRegenerate = true;
+            }
+
+        } catch (const std::exception& e) {
+            std::cerr << "Ошибка при загрузке ключей: " << e.what() << "\n";
+            needToRegenerate = true;
+        }
     } else {
+        needToRegenerate = true;
+    }
+
+    if (needToRegenerate) {
         privateKey.GenerateRandomWithKeySize(rng, rsaKeySize);
         publicKey = RSA::PublicKey(privateKey);
 
@@ -37,6 +56,8 @@ void crypto_signer::loadOrGenerateKeys() {
         FileSink publicFile(pubPath.c_str());
         publicKey.DEREncode(publicFile);
         publicFile.MessageEnd();
+
+        std::cout << "Новые ключи с длиной " << rsaKeySize << " бит сохранены.\n";
     }
 }
 
