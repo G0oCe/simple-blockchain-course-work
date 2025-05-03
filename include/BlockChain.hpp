@@ -19,10 +19,10 @@ public:
     BlockChain(crypto_signer& signer, int genesis = 1);
     Block getBlock(int index);
     int getNumOfBlocks(void);
-    int addBlock(int index, std::string prevHash, std::string hash, std::string nonce, std::vector<std::string>& merkle);
+    int addBlock(int index, std::string prevHash, std::string nonce, std::vector<std::string>& merkle);
     std::string getLatestBlockHash(void);
     std::string toJSON(void);
-    int replaceChain(json chain);
+    int replaceChain(json chain, bool verify);
 
 private:
     std::vector<std::unique_ptr<Block>> blockchain;
@@ -32,12 +32,27 @@ private:
 BlockChain::BlockChain(crypto_signer& signer, int genesis) : signer(signer) {
     if (genesis == 0) {
         std::vector<std::string> v = {"Genesis Block!"};
+
+        // Создаём nonce и header, как для обычных блоков
         auto hash_nonce_pair = findHash(0, "00000000000000", v);
-        std::string signature = signer.sign(hash_nonce_pair.first);  // подписываем хеш
-        blockchain.push_back(std::make_unique<Block>(0, "00000000000000", hash_nonce_pair.first, hash_nonce_pair.second, v, signature));
-        std::cout << "Created blockchain!\n";
+
+        std::string header = std::to_string(0) + "00000000000000" + getMerkleRoot(v) + hash_nonce_pair.second;
+        std::string hash = sha256(header);
+        std::string signature = signer.sign(header);
+
+        blockchain.push_back(std::make_unique<Block>(
+                0,
+                "00000000000000",
+                hash,
+                hash_nonce_pair.second,
+                v,
+                signature
+        ));
+
+        std::cout << "✅ Genesis блок создан корректно\n";
     }
 }
+
 
 Block BlockChain::getBlock(int index) {
     for (const auto& block : blockchain) {
@@ -91,7 +106,7 @@ std::string BlockChain::toJSON() {
     return j.dump(3);
 }
 
-int BlockChain::replaceChain(json chain) {
+int BlockChain::replaceChain(json chain, bool verify) {
     //remove all blocks except for the first block
     while (blockchain.size() > 1) {
         blockchain.pop_back();
@@ -107,10 +122,13 @@ int BlockChain::replaceChain(json chain) {
 
         std::string signature = block["signature"];
 
-        if (!signer.verify(header, signature)) {
-            std::cout << "Подпись блока " << block["index"] << " некорректна! Отмена загрузки.\n";
-            return 0;
+        if (verify) {
+            if (!signer.verify(header, signature)) {
+                std::cout << "Подпись блока " << block["index"] << " некорректна! Отмена загрузки.\n";
+                return 0;
+            }
         }
+
 
         blockchain.push_back(std::make_unique<Block>(
                 block["index"], block["previousHash"], block["hash"],
