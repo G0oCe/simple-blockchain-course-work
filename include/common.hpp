@@ -27,25 +27,24 @@ string getMerkleRoot(const vector<string> &merkle) {
     }
 
     vector<string> new_merkle = merkle;
+    std::sort(new_merkle.begin(), new_merkle.end()); // 🛠️ ключевое добавление
 
     while (new_merkle.size() > 1) {
         if ( new_merkle.size() % 2 == 1 )
-            new_merkle.push_back(merkle.back());
+            new_merkle.push_back(new_merkle.back()); // ⚠️ ранее была ошибка: merkle.back()
 
         vector<string> result;
-            
         for (int i=0; i < new_merkle.size(); i += 2){
             string var1 = sha256(new_merkle[i]);
             string var2 = sha256(new_merkle[i+1]);
             string hash = sha256(var1+var2);
-            // printf("---hash(hash(%s), hash(%s)) => %s\n",new_merkle[0].c_str(),new_merkle[1].c_str(),hash.c_str());
             result.push_back(hash);
         }
         new_merkle = result;
     }
     return new_merkle[0];
-
 }
+
 pair<string,string> findHash(int index, string prevHash, vector<string> &merkle) {
     string header = to_string(index) + prevHash + getMerkleRoot(merkle);
     unsigned int nonce;
