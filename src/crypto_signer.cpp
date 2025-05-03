@@ -63,36 +63,56 @@ void crypto_signer::loadOrGenerateKeys() {
 
 std::string crypto_signer::sign(const std::string& message) const {
     using namespace CryptoPP;
+
     AutoSeededRandomPool rng;
-
     RSASS<PKCS1v15, SHA256>::Signer signer(privateKey);
-    std::string signature;
+    std::string signature, encoded;
 
+    // Подпись
     StringSource(message, true,
                  new SignerFilter(rng, signer,
                                   new StringSink(signature)
                  )
     );
 
-    return signature;
-}
-
-bool crypto_signer::verify(const std::string& message, const std::string& signature) const {
-    using namespace CryptoPP;
-
-    bool result = false;
-
-    RSASS<PKCS1v15, SHA256>::Verifier verifier(publicKey);
-
-    SignatureVerificationFilter verifierFilter(
-            verifier,
-            new ArraySink((byte*)&result, sizeof(result)),
-            SignatureVerificationFilter::PUT_RESULT | SignatureVerificationFilter::SIGNATURE_AT_BEGIN
+    // Кодирование в base64
+    StringSource(signature, true,
+                 new Base64Encoder(
+                         new StringSink(encoded),
+                         false  // без символов новой строки
+                 )
     );
 
-    verifierFilter.Put(reinterpret_cast<const byte*>(signature.data()), signature.size());
-    verifierFilter.Put(reinterpret_cast<const byte*>(message.data()), message.size());
-    verifierFilter.MessageEnd();
+    return encoded;
+}
 
-    return result;
+bool crypto_signer::verify(const std::string& message, const std::string& base64_signature) const {
+    using namespace CryptoPP;
+
+    try {
+        RSASS<PKCS1v15, SHA256>::Verifier verifier(publicKey);
+
+        std::string decoded_signature;
+        // Декодируем base64-подпись
+        StringSource(base64_signature, true,
+                     new Base64Decoder(
+                             new StringSink(decoded_signature)
+                     )
+        );
+
+        // Проверка подписи
+        StringSource(
+                decoded_signature + message,
+                true,
+                new SignatureVerificationFilter(
+                        verifier, nullptr,
+                        SignatureVerificationFilter::THROW_EXCEPTION |
+                        SignatureVerificationFilter::SIGNATURE_AT_BEGIN
+                )
+        );
+
+        return true;
+    } catch (const CryptoPP::Exception& e) {
+        return false;
+    }
 }

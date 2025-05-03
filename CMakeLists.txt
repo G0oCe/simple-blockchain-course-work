@@ -4,20 +4,31 @@ project(simple_blockchain)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-include_directories(include /usr/include/cryptopp)
-
-# src
-file(GLOB_RECURSE SOURCES
-        src/*.cpp
+# === Find and include Crypto++ ===
+find_path(CRYPTOPP_INCLUDE_DIR cryptlib.h
+    PATHS /usr/include /usr/local/include
+    PATH_SUFFIXES cryptopp
 )
+
+find_library(CRYPTOPP_LIBRARY cryptopp
+    PATHS /usr/lib /usr/local/lib
+)
+
+if (NOT CRYPTOPP_INCLUDE_DIR OR NOT CRYPTOPP_LIBRARY)
+    message(FATAL_ERROR "Crypto++ not found. Please install libcrypto++-dev.")
+endif()
+
+include_directories(${CRYPTOPP_INCLUDE_DIR} include)
+
+# === Sources ===
+file(GLOB_RECURSE SOURCES src/*.cpp)
 
 add_executable(simple_blockchain ${SOURCES})
 
-# Linking libraries directly (without find_package)
 target_link_libraries(simple_blockchain
-        cryptopp
-        ssl
-        crypto
+    ${CRYPTOPP_LIBRARY}
+    ssl
+    crypto
 )
 
 
