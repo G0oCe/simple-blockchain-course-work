@@ -21,13 +21,14 @@ using namespace std;
  * Main function - простой CLI для работы с блокчейном
  */
 int main() {
+    // Чтение конфигурации
     std::ifstream config_file("../config.json");
     nlohmann::json config;
     config_file >> config;
 
     unsigned int key_size = config["key_size"];
     std::string key_path = config["key_path"];
-    bool verify_blocks = config.value("verify_blocks", false); // если нет — по умолчанию false
+    bool verify_blocks = config.value("verify_blocks", false);
 
     crypto_signer signer(key_path, key_size);
 
@@ -35,17 +36,22 @@ int main() {
 
     std::unique_ptr<BlockChain> bc;
 
-
+    // Проверяем наличие blockchain.json
     std::ifstream blockchain_input("../blockchain.json");
-    nlohmann::json chain_json;
-
-    if (blockchain_input.is_open()) {
+    if (blockchain_input) {
+        nlohmann::json chain_json;
         blockchain_input >> chain_json;
-        bc = std::make_unique<BlockChain>(signer, 1);  // dummy genesis
-        bc -> replaceChain(chain_json);
-        std::cout << "Загружен существующий блокчейн из файла.\n";
+
+        bc = std::make_unique<BlockChain>(signer, 0); // создаём, чтобы заменить цепочку
+        if (bc->replaceChain(chain_json, verify_blocks)) {
+            std::cout << "Загружен существующий блокчейн из файла.\n";
+        } else {
+            std::cerr << "Ошибка при валидации блокчейна из файла. Завершение.\n";
+            return 1;
+        }
     } else {
-        bc = std::make_unique<BlockChain>(signer, 0); // создаём genesis-блок
+        // Файл не найден — создаём новый с genesis-блоком
+        bc = std::make_unique<BlockChain>(signer, 0);
         std::cout << "Создан новый блокчейн с genesis-блоком.\n";
     }
 
@@ -90,7 +96,7 @@ int main() {
 
             try {
                 auto pair = findHash(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), v);
-                bc -> addBlock(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), pair.first, pair.second, v);
+                bc -> addBlock(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), pair.second, v);
             } catch (const exception& e) {
                 cout << e.what() << "\n" << endl;
             }
