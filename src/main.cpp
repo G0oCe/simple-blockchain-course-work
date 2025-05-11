@@ -1,28 +1,25 @@
 // author: tko (упрощён для локального использования)
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <vector>
-#include <memory>
-#include <stdexcept>
 #include <fstream>
+#include <memory>
 
 #include "hash.hpp"
 #include "Block.hpp"
 #include "common.hpp"
 #include "BlockChain.hpp"
-#include "crypto_signer.hpp"
 #include "json.hh"
-// убраны: requests.hpp, client_http.hpp, server_http.hpp
+#include "MyRSA.h"
 
-using namespace std;
-
-/*
- * Main function - простой CLI для работы с блокчейном
- */
 int main() {
     // Чтение конфигурации
     std::ifstream config_file("../config.json");
+    if (!config_file.is_open()) {
+        std::cerr << "Не удалось открыть config.json\n";
+        return 1;
+    }
+
     nlohmann::json config;
     config_file >> config;
 
@@ -30,9 +27,10 @@ int main() {
     std::string key_path = config["key_path"];
     bool verify_blocks = config.value("verify_blocks", false);
 
-    crypto_signer signer(key_path, key_size);
+    // Инициализация и (при необходимости) генерация ключей
+    MyRSA signer(key_path, key_size);
 
-    printf("Добро пожаловать в локальную версию блокчейна! Для выхода — Ctrl+C\n");
+    std::cout << "Добро пожаловать в локальную версию блокчейна! Для выхода — Ctrl+C\n";
 
     std::unique_ptr<BlockChain> bc;
 
@@ -55,65 +53,61 @@ int main() {
         std::cout << "Создан новый блокчейн с genesis-блоком.\n";
     }
 
-
     // CLI — ввод и просмотр блоков
-    for (int i = 0; i < 20; i++) {
-        vector<string> v;
-        int temp;
+    for (int i = 0; i < 20; ++i) {
+        std::vector<std::string> v;
+        int temp = 0;
 
-        printf("\n(1) Посмотреть блок\n(2) Добавить блок\n");
-        int valid = scanf("%d", &temp);
+        std::cout << "\n(1) Посмотреть блок\n(2) Добавить блок\n";
+        int valid = std::scanf("%d", &temp);
 
         if ((valid == 1) && (temp == 1)) {
-            printf("Введите индекс блока для просмотра: ");
-            scanf("%d", &temp);
+            std::cout << "Введите индекс блока для просмотра: ";
+            std::scanf("%d", &temp);
             try {
-                Block block = bc -> getBlock(temp);
+                Block block = bc->getBlock(temp);
                 block.toString();
 
                 if (verify_blocks) {
-                    if (signer.verify(block.getHash(), block.getSignature()))
+                    std::string header = block.getHeader();
+                    std::string hash = sha256(header);
+                    std::string recomputedSig = signer.sign(hash);
+
+                    std::cout << "hash при проверке: " << hash << "\n";
+                    std::cout << "expected sig: " << block.getSignature() << "\n";
+                    std::cout << "recomputed:   " << recomputedSig << "\n";
+
+                    if (signer.verify(hash, block.getSignature())) {
                         std::cout << "✅ Подпись блока корректна\n";
-                    else
+                    } else {
                         std::cout << "❌ Подпись блока НЕ прошла\n";
+                    }
                 }
 
-            } catch (const exception& e) {
-                cout << e.what() << endl;
+            } catch (const std::exception& e) {
+                std::cout << e.what() << std::endl;
             }
-        }
-        else if (temp == 2) {
+        } else if (temp == 2) {
             char tmp[201];
-            printf("\nДОБАВЛЕНИЕ БЛОКА\nВведите сообщение: ");
-            scanf("%200s", tmp);
-            string str = tmp;
-            printf("Введено: '%s'\n", str.c_str());
+            std::cout << "\nДОБАВЛЕНИЕ БЛОКА\nВведите сообщение: ";
+            std::scanf("%200s", tmp);
+            std::string str(tmp);
+            std::cout << "Введено: '" << str << "'\n";
             v.push_back(str);
 
-            int in;
-            printf("Введите любое число, чтобы подтвердить добавление: ");
-            scanf("%d", &in);
+            int in = 0;
+            std::cout << "Введите любое число, чтобы подтвердить добавление: ";
+            std::scanf("%d", &in);
 
             try {
-                auto pair = findHash(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), v);
-                bc -> addBlock(bc -> getNumOfBlocks(), bc -> getLatestBlockHash(), pair.second, v);
-            } catch (const exception& e) {
-                cout << e.what() << "\n" << endl;
+                auto pair = findHash(bc->getNumOfBlocks(), bc->getLatestBlockHash(), v);
+                bc->addBlock(bc->getNumOfBlocks(), bc->getLatestBlockHash(), pair.second, v);
+            } catch (const std::exception& e) {
+                std::cout << e.what() << "\n";
             }
         }
     }
 
-    printf("\nРабота завершена.\n");
-
-//    crypto_signer signer(key_path, key_size);
-//
-//    std::string message = "hello blockchain";
-//    std::string sig = signer.sign(message);
-//
-//    if (signer.verify(message, sig))
-//        std::cout << "✅ Подпись корректна!\n";
-//    else
-//        std::cout << "❌ Подпись не прошла\n";
-
+    std::cout << "\nРабота завершена.\n";
     return 0;
 }
