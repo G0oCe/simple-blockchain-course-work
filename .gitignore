@@ -8,7 +8,7 @@ cmake-build-*/
 *.iml
 
 # === RSA keys ===
-*.pem
+keys/
 
 # === Jsons ===
 blockchain.json
