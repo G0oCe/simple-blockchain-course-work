@@ -40,7 +40,10 @@ BlockChain::BlockChain(MyRSA& signer, int genesis) : signer(signer) {
 
         std::string header = std::to_string(0) + "00000000000000" + getMerkleRoot(v) + hash_nonce_pair.second;
         std::string hash = sha256(header);
-        std::string signature = signer.sign(header);
+        std::string signature = signer.sign(hash);
+
+
+        std::cout << "hash при подписи блока:   " << 0 << hash << "\n";
 
         blockchain.push_back(std::make_unique<Block>(
                 0,
@@ -70,7 +73,6 @@ int BlockChain::getNumOfBlocks(void) {
     return blockchain.size();
 }
 
-// checks whether data fits with the right hash -> add block
 int BlockChain::addBlock(int index, std::string prevHash, std::string nonce, std::vector<std::string>& merkle) {
     std::string header = std::to_string(index) + prevHash + getMerkleRoot(merkle) + nonce;
     std::string hash = sha256(header);
@@ -112,19 +114,19 @@ std::string BlockChain::toJSON() {
 }
 
 int BlockChain::replaceChain(json chain, bool verify) {
-    //remove all blocks except for the first block
-    while (blockchain.size() > 1) {
+    while (blockchain.size() > 0) {
         blockchain.pop_back();
     }
 
-    for (int a = 1; a < chain["length"].get<int>(); a++) {
+    for (int a = 0; a < chain["length"].get<int>(); a++) {
         auto block = chain["data"][a];
         std::vector<std::string> data = block["data"].get<std::vector<std::string>>();
         std::string header = block["header"];
         std::string signature = block["signature"];
+        std::string hash = block["hash"];
 
         if (verify) {
-            if (!signer.verify(header, signature)) {
+            if (!signer.verify(hash, signature)) {
                 std::cout << "Подпись блока " << block["index"] << " некорректна! Отмена загрузки.\n";
                 return 0;
             }
