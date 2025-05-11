@@ -9,14 +9,14 @@
 
 #include "Block.hpp"
 #include "hash.hpp"
-#include "crypto_signer.hpp"
+#include "MyRSA.h"
 #include "json.hh"
 
 using json = nlohmann::json;
 
 class BlockChain {
 public:
-    BlockChain(crypto_signer& signer, int genesis = 1);
+    BlockChain(MyRSA& signer, int genesis = 1);
     Block getBlock(int index);
     int getNumOfBlocks(void);
     int addBlock(int index, std::string prevHash, std::string nonce, std::vector<std::string>& merkle);
@@ -26,10 +26,10 @@ public:
 
 private:
     std::vector<std::unique_ptr<Block>> blockchain;
-    crypto_signer& signer;  // Ссылка на класс подписи
+    MyRSA& signer;  // Ссылка на класс подписи
 };
 
-BlockChain::BlockChain(crypto_signer& signer, int genesis) : signer(signer) {
+BlockChain::BlockChain(MyRSA& signer, int genesis) : signer(signer) {
     if (genesis == 0) {
         std::vector<std::string> v = {"Genesis Block!"};
 
