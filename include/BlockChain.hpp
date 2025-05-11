@@ -6,7 +6,9 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <fstream>
 
+#include <common.hpp>
 #include "Block.hpp"
 #include "hash.hpp"
 #include "MyRSA.h"
@@ -46,7 +48,8 @@ BlockChain::BlockChain(MyRSA& signer, int genesis) : signer(signer) {
                 hash,
                 hash_nonce_pair.second,
                 v,
-                signature
+                signature,
+                header // ← добавлено
         ));
 
         std::cout << "✅ Genesis блок создан корректно\n";
@@ -72,11 +75,15 @@ int BlockChain::addBlock(int index, std::string prevHash, std::string nonce, std
     std::string header = std::to_string(index) + prevHash + getMerkleRoot(merkle) + nonce;
     std::string hash = sha256(header);
 
+    std::cout << "hash при подписи блока:   " << index << hash << "\n";
     // Проверка: валидность хэша и правильная позиция
     if (hash.substr(0, 2) == "00" && index == blockchain.size()) {
-        std::string signature = signer.sign(header);
 
-        blockchain.push_back(std::make_unique<Block>(index, prevHash, hash, nonce, merkle, signature));
+        std::string signature = signer.sign(hash);
+
+        blockchain.push_back(std::make_unique<Block>(
+                index, prevHash, hash, nonce, merkle, signature, header
+        ));
 
         // Автоматическое сохранение в файл
         std::ofstream out("../blockchain.json");
@@ -90,8 +97,6 @@ int BlockChain::addBlock(int index, std::string prevHash, std::string nonce, std
     std::cout << "Hash doesn't match criteria\n";
     return 0;
 }
-
-
 
 std::string BlockChain::getLatestBlockHash(void) {
     return blockchain.back()->getHash();
@@ -115,11 +120,7 @@ int BlockChain::replaceChain(json chain, bool verify) {
     for (int a = 1; a < chain["length"].get<int>(); a++) {
         auto block = chain["data"][a];
         std::vector<std::string> data = block["data"].get<std::vector<std::string>>();
-        std::string header = std::to_string(block["index"].get<int>()) +
-                             block["previousHash"].get<std::string>() +
-                             getMerkleRoot(data) +
-                             block["nonce"].get<std::string>();
-
+        std::string header = block["header"];
         std::string signature = block["signature"];
 
         if (verify) {
@@ -129,16 +130,19 @@ int BlockChain::replaceChain(json chain, bool verify) {
             }
         }
 
-
         blockchain.push_back(std::make_unique<Block>(
-                block["index"], block["previousHash"], block["hash"],
-                block["nonce"], data, signature
+                block["index"],
+                block["previousHash"],
+                hash,
+                block["nonce"],
+                data,
+                signature,
+                header // ← добавлено
         ));
     }
 
     std::cout << "✅ Цепочка успешно заменена на полученную из файла\n";
     return 1;
 }
-
 
 #endif
