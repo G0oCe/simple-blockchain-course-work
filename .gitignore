@@ -14,6 +14,7 @@ keys/
 blockchain.json
 config.json
 gen_settings.json
+generated/
 
 # === Build Artifacts ===
 build/
