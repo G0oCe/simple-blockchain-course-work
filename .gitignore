@@ -13,6 +13,7 @@ keys/
 # === Jsons ===
 blockchain.json
 config.json
+gen_settings.json
 
 # === Build Artifacts ===
 build/
