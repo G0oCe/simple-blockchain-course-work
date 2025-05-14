@@ -7,6 +7,10 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <random>
+#include <algorithm>
+#include <sstream>
+#include <climits>
 
 void print_hex(const char *label, const uint8_t *v, size_t len) {
     size_t i;
@@ -60,11 +64,28 @@ pair<string,string> findHash(int index, string prevHash, vector<string> &merkle)
     }
     return make_pair("fail","fail");
 }
-// int addBlock(int index, string prevHash, vector<string> &merkle, vector<unique_ptr<Block> > &blockchain) {
-//     string header = to_string(index) + prevHash + getMerkleRoot(merkle);
-//     auto pair = findHash(header);
 
-//     blockchain.push_back(std::make_unique<Block>(index,prevHash,pair.first,pair.second,merkle));
-//     return 1;
-// }
+// Function to generate a random ASCII string of a given length
+std::string generateRandomASCIIString(size_t length) {
+    const std::string CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ ";
+    std::random_device random_device;
+    std::mt19937 generator(random_device());
+    std::uniform_int_distribution<> distribution(0, CHARACTERS.length() - 1);
+
+    std::string random_string;
+    random_string.reserve(length);
+
+    for (size_t i = 0; i < length; ++i) {
+        random_string += CHARACTERS[distribution(generator)];
+    }
+    return random_string;
+}
+
+// Function to generate a random entropy value (e.g., as a string)
+std::string generateEntropyValue() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned long long> distrib(0, ULLONG_MAX);
+    return std::to_string(distrib(gen));
+}
 #endif
