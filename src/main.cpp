@@ -79,7 +79,7 @@ int main() {
 
         // Construct filename and save the generated blockchain
         std::ostringstream filename_s;
-        filename_s << "../blockchain_" << data_length << "_" << block_count << ".json";
+        filename_s << "../generated/blockchain_" << data_length << "_" << block_count << ".json";
         std::string output_filename = filename_s.str();
 
         std::ofstream out_file(output_filename);

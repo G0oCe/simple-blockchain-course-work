@@ -1,6 +1,0 @@
-{
-  "key_size": 2048,
-  "key_path": "../keys/",
-  "verify_blocks": true,
-  "generate": false
-}
