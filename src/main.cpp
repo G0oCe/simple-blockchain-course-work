@@ -49,7 +49,7 @@ int main() {
 
         //std::cout << "Generating blockchain with " << block_count << " blocks, each with data length " << data_length << ".\n";
 
-        BlockChain generated_bc(signer, 0);
+        BlockChain generated_bc(signer, 0, generateRandomASCIIString(data_length));
 
         if (block_count == 0) {
             //std::cout << "Block count is 0. No blocks will be generated beyond potential implicit genesis.\n";

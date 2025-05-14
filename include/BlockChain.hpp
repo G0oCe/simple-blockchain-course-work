@@ -18,6 +18,7 @@ using json = nlohmann::json;
 
 class BlockChain {
 public:
+    BlockChain(MyRSA& signer, int genesis, std::string generated);
     BlockChain(MyRSA& signer, int genesis = 1);
     Block getBlock(int index);
     int getNumOfBlocks(void);
@@ -30,6 +31,34 @@ private:
     std::vector<std::unique_ptr<Block>> blockchain;
     MyRSA& signer;  // Ссылка на класс подписи
 };
+
+BlockChain::BlockChain(MyRSA& signer, int genesis, std::string generated) : signer(signer) { // another constructor to generate genesis block data properly
+    if (genesis == 0) {
+        std::vector<std::string> v = {generated};
+
+        // Создаём nonce и header, как для обычных блоков
+        auto hash_nonce_pair = findHash(0, "00000000000000", v);
+
+        std::string header = std::to_string(0) + "00000000000000" + getMerkleRoot(v) + hash_nonce_pair.second;
+        std::string hash = sha256(header);
+        std::string signature = signer.sign(hash);
+
+
+        std::cout << "hash при подписи блока:   " << 0 << hash << "\n";
+
+        blockchain.push_back(std::make_unique<Block>(
+                0,
+                "00000000000000",
+                hash,
+                hash_nonce_pair.second,
+                v,
+                signature,
+                header // ← добавлено
+        ));
+
+        std::cout << "✅ Genesis блок создан корректно\n";
+    }
+}
 
 BlockChain::BlockChain(MyRSA& signer, int genesis) : signer(signer) {
     if (genesis == 0) {
