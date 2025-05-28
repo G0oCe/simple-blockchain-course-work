@@ -66,8 +66,9 @@ pair<string,string> findHash(int index, string prevHash, vector<string> &merkle)
 }
 
 // Function to generate a random ASCII string of a given length
-std::string generateRandomASCIIString(size_t length) {
-    const std::string CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ ";
+std::string generateRandomStringWithCharset(size_t length, std::string CHARACTERS) {
+// In your C++ data generation code
+    //const std::string CHARACTERS = "012345";
     std::random_device random_device;
     std::mt19937 generator(random_device());
     std::uniform_int_distribution<> distribution(0, CHARACTERS.length() - 1);
@@ -87,5 +88,16 @@ std::string generateEntropyValue() {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<unsigned long long> distrib(0, ULLONG_MAX);
     return std::to_string(distrib(gen));
+}
+
+std::string generateP2P(
+        size_t senderLen, const std::string& addrChars,
+        size_t receiverLen,
+        size_t amountLen, const std::string& amountChars
+) {
+    std::string sender = generateRandomStringWithCharset(senderLen, addrChars);
+    std::string receiver = generateRandomStringWithCharset(receiverLen, addrChars);
+    std::string amount = generateRandomStringWithCharset(amountLen, amountChars);
+    return sender + receiver + amount;
 }
 #endif

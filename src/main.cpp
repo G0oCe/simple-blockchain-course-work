@@ -12,7 +12,9 @@
 #include "json.hh"
 #include "MyRSA.h"
 
+#include "hash.hpp"
 int main() {
+
     // Чтение конфигурации
     std::ifstream config_file("../config.json");
     if (!config_file.is_open()) {
@@ -33,65 +35,95 @@ int main() {
     bool generate_new_blockchain = config.value("generate", false); // Read the 'generate' flag
 
     if (generate_new_blockchain) {
-        // std::cout << "Blockchain generation mode activated.\n";
+        std::cout << "Blockchain generation mode activated.\n";
 
         std::ifstream gen_settings_file("../gen_settings.json");
         if (!gen_settings_file.is_open()) {
-             std::cerr << "Не удалось открыть gen_settings.json\n";
+            std::cerr << "Не удалось открыть gen_settings.json\n";
             return 1;
         }
         nlohmann::json gen_config;
         gen_settings_file >> gen_config;
         gen_settings_file.close();
 
-        int data_length = gen_config.value("dataLength", 5); // Default to 5 if not found
-        int block_count = gen_config.value("blockCount", 10); // Default to 10 if not found
+        // Чтение параметров генерации
+        int data_length = gen_config.value("dataLength", 5);
+        int block_count = gen_config.value("blockCount", 10);
+        int sender_len = gen_config.value("senderAddressLength", 10);
+        int receiver_len = gen_config.value("receiverAddressLength", 10);
+        int amount_len = gen_config.value("amountLength", 5);
+        std::string addr_charset = gen_config.value("addressCharSet", "0123456789abcdef");
+        std::string amount_charset = gen_config.value("amountCharSet", "0123456789");
+        bool anon = gen_config.value("anon", false); // Читаем флаг 'anon'
 
-        //std::cout << "Generating blockchain with " << block_count << " blocks, each with data length " << data_length << ".\n";
+        std::unique_ptr<BlockChain> generated_bc; // Объявляем unique_ptr здесь
+        std::string output_filename;
 
-        BlockChain generated_bc(signer, 0, generateRandomASCIIString(data_length));
+        if (anon) {
+            std::cout << "Generating ANONYMOUS blockchain...\n";
+            std::cout << "Settings: Sender=" << sender_len << ", Receiver=" << receiver_len << ", Amount=" << amount_len << "\n";
 
-        if (block_count == 0) {
-            //std::cout << "Block count is 0. No blocks will be generated beyond potential implicit genesis.\n";
-        } else if (generated_bc.getNumOfBlocks() == 1 && block_count == 1) {
-            //std::cout << "Genesis block created. Total blocks target: 1.\n";
-        }
+            std::string genesis_data = generateP2P(sender_len, addr_charset, receiver_len, amount_len, amount_charset);
+            generated_bc = std::make_unique<BlockChain>(signer, 0, genesis_data);
 
+            for (int i = generated_bc->getNumOfBlocks() - 1; i < block_count - 1; ++i) {
+                std::vector<std::string> block_data;
+                block_data.push_back(generateP2P(sender_len, addr_charset, receiver_len, amount_len, amount_charset));
+                block_data.push_back(generateEntropyValue());
 
-        for (int i = generated_bc.getNumOfBlocks() - 1; i < block_count - 1; ++i) { // Start from current number of blocks
-            std::vector<std::string> block_data;
-            block_data.push_back(generateRandomASCIIString(data_length));
-            block_data.push_back(generateEntropyValue()); // Add entropy
+                std::string prev_hash = generated_bc->getLatestBlockHash();
+                int next_block_index = generated_bc->getNumOfBlocks();
+                auto pair_hash_nonce = findHash(next_block_index, prev_hash, block_data);
 
-            std::string prev_hash = generated_bc.getLatestBlockHash();
-            int next_block_index = generated_bc.getNumOfBlocks();
-
-            auto pair_hash_nonce = findHash(next_block_index, prev_hash, block_data);
-
-            if (pair_hash_nonce.first == "fail") {
-                std::cerr << "Failed to find a suitable hash for block " << next_block_index << ". Stopping generation.\n";
-                break;
+                if (pair_hash_nonce.first == "fail") {
+                    std::cerr << "Failed to find hash for block " << next_block_index << ".\n"; break;
+                }
+                generated_bc->addBlock(next_block_index, prev_hash, pair_hash_nonce.second, block_data);
+                std::cout << "Generated and added block " << next_block_index << "\n";
             }
 
-            generated_bc.addBlock(next_block_index, prev_hash, pair_hash_nonce.second, block_data);
-            // std::cout << "Generated and added block " << next_block_index << "\n";
+            std::ostringstream filename_s;
+            filename_s << "../generated/blockchain_anon_" << block_count << ".json";
+            output_filename = filename_s.str();
+
+        } else { // Если не анонимный режим
+            std::cout << "Generating REGULAR blockchain...\n";
+            std::cout << "Settings: DataLength=" << data_length << "\n";
+
+            std::string genesis_data = generateRandomStringWithCharset(data_length, addr_charset); // Используем addr_charset для не-анонимных данных
+            generated_bc = std::make_unique<BlockChain>(signer, 0, genesis_data);
+
+            for (int i = generated_bc->getNumOfBlocks() - 1; i < block_count - 1; ++i) {
+                std::vector<std::string> block_data;
+                block_data.push_back(generateRandomStringWithCharset(data_length, addr_charset)); // Исправлено
+                block_data.push_back(generateEntropyValue());
+
+                std::string prev_hash = generated_bc->getLatestBlockHash();
+                int next_block_index = generated_bc->getNumOfBlocks();
+                auto pair_hash_nonce = findHash(next_block_index, prev_hash, block_data);
+
+                if (pair_hash_nonce.first == "fail") {
+                    std::cerr << "Failed to find hash for block " << next_block_index << ".\n"; break;
+                }
+                generated_bc->addBlock(next_block_index, prev_hash, pair_hash_nonce.second, block_data);
+                std::cout << "Generated and added block " << next_block_index << "\n";
+            }
+
+            std::ostringstream filename_s;
+            filename_s << "../generated/blockchain_" << data_length << "_" << block_count << ".json";
+            output_filename = filename_s.str();
         }
 
-        // Construct filename and save the generated blockchain
-        std::ostringstream filename_s;
-        filename_s << "../generated/blockchain_" << data_length << "_" << block_count << ".json";
-        std::string output_filename = filename_s.str();
-
+        // Сохранение блокчейна
         std::ofstream out_file(output_filename);
         if (out_file.is_open()) {
-            out_file << generated_bc.toJSON();
+            out_file << generated_bc->toJSON();
             out_file.close();
-            // std::cout << "Generated blockchain saved to: " << output_filename << "\n";
+            std::cout << "Generated blockchain saved to: " << output_filename << "\n";
         } else {
-            std::cerr << "Failed to open file for saving generated blockchain: " << output_filename << "\n";
+            std::cerr << "Failed to open file for saving: " << output_filename << "\n";
         }
-
-        return 0;
+        return 0; // Завершаем работу после генерации
     }
 
     std::cout << "Добро пожаловать в локальную версию блокчейна! Для выхода — Ctrl+C\n";
