@@ -1,0 +1,11 @@
+{
+  "addressCharSet": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+  "amountCharSet": "012345",
+  "amountLength": 1,
+  "anon": false,
+  "blockCount": 14,
+  "dataLength": 4,
+  "AddressLength": 2,
+  "senderAddressLength": 2,
+  "receiverAddressLength": 3
+}
